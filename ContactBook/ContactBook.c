@@ -8,10 +8,10 @@
 char login[32], pass[32];
 MYSQL* conn;
 
-char* server = "localhost";
+char* server = "http://mysql.mastero.cloud/";
 char* user = login;
 char* password = pass;
-char* database = "bazaphp1";
+char* database = "PhoneBook";
 
 void mainMenu();
 
@@ -34,7 +34,7 @@ void showAllContacts()
 {
 	system("cls");
 	MYSQL_ROW rows;
-	char query[] = "SELECT Id, Name, SName, PhoneNumber, Address, Email FROM contacts_";
+	char query[] = "SELECT Id, Name, SName, PhoneNumber, Address, Email FROM Contacts_";
 	int lastId = 0;
 	strcat(query, login);
 	bool isExists = false;
