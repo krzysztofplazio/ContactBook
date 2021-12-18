@@ -18,9 +18,12 @@ char* user = login;
 char* password = pass;
 char* database = "PhoneBook";
 
+char name[100];
+
 void mainMenu();
 void searchContactsById();
 void showAllContacts();
+void searchContactsByName();
 
 void passHider()
 {
@@ -71,47 +74,47 @@ void passHider()
 	printf("\n");
 }
 
-void isContactExist(bool isExists, int lastId)
+
+void isContactExist(int lastId, char* currFunc, void(*cur)(char*))
 {
-	if (isExists)
+	char quit;
+	printf("Exit? [y/N]: ");
+	quit = _getch();
+	putchar('\n');
+	switch (quit)
 	{
-		char quit;
-		printf("Exit? [y/N]: ");
-		quit = _getch();
-		putchar('\n');
-		switch (quit)
+	case 121:
+	{
+		mainMenu();
+	}
+	break;
+	case 110:
+	case 78:
+	{
+		int conNum;
+		while (true)
 		{
-		case 121:
-		{
-			mainMenu();
-		}
-		break;
-		case 110:
-		case 78:
-		{
-			int conNum;
-			while (true)
+			printf("Pick your contact number: ");
+			scanf("%d", &conNum);
+			if (conNum > lastId || lastId == 0)
 			{
-				printf("Pick your contact number: ");
-				scanf("%d", &conNum);
-				if (conNum > lastId || lastId == 0)
-				{
-					printf("There's not contact with id %d\n\n", conNum);
-				}
-				else
-				{
-					searchContactsById(conNum);
-					break;
-				}
+				printf("There's not contact with id %d\n\n", conNum);
+			}
+			else
+			{
+				searchContactsById(conNum);
+				break;
 			}
 		}
+	}
+	break;
+	default:
+		/*if (currFunc == "ByName")
+			searchContactsByName(name);
+		else if (currFunc == "AllContacts")
+			showAllContacts();*/
+		(*cur)(name);
 		break;
-		default:
-		{
-			showAllContacts();
-		}
-		break;
-		}
 	}
 }
 
@@ -122,6 +125,7 @@ void searchContactsByName(char* name)
 	char* query[150];
 	bool isExists = false;
 	int lastId = 0;
+	int rowCounter = 0;
 	sprintf(query, "SELECT Id, Name, SName, PhoneNumber, Address, Email FROM Contacts_%s WHERE Name = \"%s\";", login, name);
 
 	if (mysql_query(conn, query))
@@ -129,24 +133,25 @@ void searchContactsByName(char* name)
 		fprintf(stderr, "%s\n", mysql_error(conn));
 		exit(1);
 	}
-	printf("Here's your contacts with name %s:\n", name);
 	MYSQL_RES* response = mysql_use_result(conn);
 	int numFields = mysql_num_fields(response);
+	printf("Here's your contacts with name %s:\n", name);
 	while ((rows = mysql_fetch_row(response)) != NULL)
 	{
-		if (numFields > 0)
+		if(numFields > 0)
 		{
 			lastId = atoi(rows[0]);
 			printf("%s. \nName: \t\t%s \nSurname: \t%s \nPhoneNumber: \t%s \nAddress: \t%s \n\n", rows[0], rows[1], rows[2], rows[3], rows[4]);
-		}
+			rowCounter++;
+		} 
 	}
-	if (numFields == 0)
+	if (rowCounter == 0)
 	{
-		printf("There's no contacts with name %s :(.\n", name);
+		printf("There's no constacts with name %s :(", name);
 	}
-	else if (numFields > 1)
+	if (rowCounter > 1)
 	{
-		isContactExist(true, lastId);
+		isContactExist(lastId, "ByName", searchContactsByName);
 	}
 	mysql_free_result(response);
 	printf("Press \'q\' to go to main menu... ");
@@ -198,7 +203,7 @@ void searchContactsById(int id)
 	}
 }
 
-void showAllContacts()
+void showAllContacts(char* temp)
 {
 	system("cls");
 	MYSQL_ROW rows;
@@ -229,7 +234,24 @@ void showAllContacts()
 		}
 	}
 	mysql_free_result(response);
-	isContactExist(isExists, lastId);
+	if (isExists)
+	{
+		isContactExist(lastId, "AllContacts", showAllContacts);
+	}
+	else
+	{
+		printf("Press \'q\' to go to main menu... ");
+		char option;
+		while (true)
+		{
+			option = _getch();
+			if (option == 81 || option == 113)
+			{
+				mainMenu();
+				break;
+			}
+		}
+	}
 }
 
 void mainMenu()
@@ -243,19 +265,17 @@ void mainMenu()
 	printf("4. Edit existed contact.\n");
 	printf("5. Exit program.\n");
 	printf("\nPick a number: ");
-	//scanf("%d", &choose);
 	choose = _getch();
 	switch (choose)
 	{
 	case '1':
 	{
-		showAllContacts();
+		showAllContacts("");
 	}
 	break;
 	case '2':
 	{
 		system("cls");
-		char name[100];
 		printf("First name: ");
 		scanf("%s", &name);
 		searchContactsByName(name);
@@ -264,6 +284,7 @@ void mainMenu()
 	case '5':
 	{
 		printf("\nBye! See you soon!");
+		exit(1);
 	}
 	break;
 	default:
