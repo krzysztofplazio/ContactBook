@@ -8,15 +8,34 @@
 
 #define PASS_LENGTH 32
 #define LOG_LENGTH 32
+#define TEMP_LENGTH 255
+#define MAX_LENGH 255
 
-char login[LOG_LENGTH], pass[PASS_LENGTH];
+char login[LOG_LENGTH], pass[PASS_LENGTH], tempValue[TEMP_LENGTH];
 MYSQL* conn;
 
-char* server = "185.226.98.6";
-unsigned int port = 33306;
+// Server
+//char* server = "185.226.98.6";
+//unsigned int port = 33306;
+//char* user = login;
+//char* password = pass;
+//char* database = "PhoneBook";
+
+// Localhost
+char* server = "127.0.0.1";
+unsigned int port = 3306;
 char* user = login;
 char* password = pass;
 char* database = "PhoneBook";
+
+struct Contacts
+{
+	char* name;
+	char* sName;
+	char* phoneNumber;
+	char* address;
+	char* email;
+};
 
 char name[100];
 
@@ -73,7 +92,6 @@ void passHider()
 	pass[charPos] = '\0';
 	printf("\n");
 }
-
 
 void isContactExist(int lastId, char* currFunc, void(*cur)(char*))
 {
@@ -254,6 +272,45 @@ void showAllContacts(char* temp)
 	}
 }
 
+void createNewContact()
+{
+	struct Contacts Contact;
+	printf("Add your new contact!");
+	printf("\nName: ");
+	// czyszczenie buforu klawiatury
+	int c;
+	while ((c = getchar()) != '\n' && c != EOF) {}
+
+	char* name = malloc(TEMP_LENGTH);
+	fgets(name, TEMP_LENGTH, stdin);
+	Contact.name = name;
+
+	printf("Surname: ");
+	char* sName = malloc(TEMP_LENGTH);
+	fgets(sName, TEMP_LENGTH, stdin);
+	Contact.sName = sName;
+
+	printf("Phone Number: ");
+	char* phoneNumber = malloc(TEMP_LENGTH);
+	fgets(phoneNumber, TEMP_LENGTH, stdin);
+	Contact.phoneNumber = phoneNumber;
+
+	printf("Address: ");
+	char* address = malloc(TEMP_LENGTH);
+	fgets(address, TEMP_LENGTH, stdin);
+	Contact.address = address;
+
+	printf("Email: ");
+	char* email = malloc(TEMP_LENGTH);
+	fgets(email, TEMP_LENGTH, stdin);
+	Contact.email = email;
+}
+
+void addContact()
+{
+
+}
+
 void mainMenu()
 {
 	system("cls");
@@ -279,6 +336,11 @@ void mainMenu()
 		printf("First name: ");
 		scanf("%s", &name);
 		searchContactsByName(name);
+	}
+	break;
+	case '3':
+	{
+		createNewContact();
 	}
 	break;
 	case '5':
@@ -317,8 +379,8 @@ void logging()
 	if (isLogged)
 	{
 		printf("Logging succesfull!");
-		mainMenu();
 		Sleep(1000);
+		mainMenu();
 	}
 	else
 	{
