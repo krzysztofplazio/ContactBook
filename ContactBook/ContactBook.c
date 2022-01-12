@@ -43,6 +43,7 @@ void mainMenu();
 void searchContactsById();
 void showAllContacts();
 void searchContactsByName();
+void addContact();
 
 void passHider()
 {
@@ -304,11 +305,16 @@ void createNewContact()
 	char* email = malloc(TEMP_LENGTH);
 	fgets(email, TEMP_LENGTH, stdin);
 	Contact.email = email;
+
+	addContact(Contact);
 }
 
-void addContact()
+void addContact(struct Contacts Contact)
 {
-
+	system("cls");
+	char* query = malloc(TEMP_LENGTH);
+	sprintf(query, "INSERT INTO Contacts_%s VALUES(NULL, \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')", login, Contact.name, Contact.sName, Contact.phoneNumber, Contact.address, Contact.email);
+	bool xd = true;
 }
 
 void mainMenu()
