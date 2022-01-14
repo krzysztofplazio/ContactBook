@@ -135,7 +135,7 @@ void isContactExist(int lastId, char* currFunc, void(*cur)(char*))
 		(*cur)(name);
 		break;
 	}
-}
+} // wmozn
 
 void searchContactsByName(char* name)
 {
@@ -402,6 +402,11 @@ void addContact(struct Contacts Contact)
 	}
 }
 
+void editContact()
+{
+	
+}
+
 void mainMenu()
 {
 	system("cls");
@@ -434,6 +439,8 @@ void mainMenu()
 		createNewContact();
 	}
 	break;
+	case '4':
+		editContact();
 	case '5':
 	{
 		printf("\nBye! See you soon!");
