@@ -15,18 +15,18 @@ char login[LOG_LENGTH], pass[PASS_LENGTH], tempValue[TEMP_LENGTH];
 MYSQL* conn;
 
 // Server
-//char* server = "185.226.98.6";
-//unsigned int port = 33306;
-//char* user = login;
-//char* password = pass;
-//char* database = "PhoneBook";
-
-// Localhost
-char* server = "127.0.0.1";
-unsigned int port = 3306;
+char* server = "185.226.98.6";
+unsigned int port = 33306;
 char* user = login;
 char* password = pass;
 char* database = "PhoneBook";
+
+// Localhost
+//char* server = "127.0.0.1";
+//unsigned int port = 3306;
+//char* user = login;
+//char* password = pass;
+//char* database = "PhoneBook";
 
 struct Contacts
 {
@@ -243,7 +243,7 @@ void showAllContacts(char* temp)
 		if (num_fields > 0)
 		{
 			lastId = atoi(rows[0]);
-			printf("%s. \nName: \t\t%s \nSurname: \t%s \nPhoneNumber: \t%s \nAddress: \t%s \n\n", rows[0], rows[1], rows[2], rows[3], rows[4]);
+			printf("%s. \nName: \t\t%s \nSurname: \t%s \nPhoneNumber: \t%s \nAddress: \t%s \nEmail: \t\t%s\n\n", rows[0], rows[1], rows[2], rows[3], rows[4], rows[5]);
 			isExists = true;
 		}
 		else
@@ -273,48 +273,133 @@ void showAllContacts(char* temp)
 	}
 }
 
+char* cutLastChar(char* str)
+{
+	int i = 0;
+	while (str[i] != '\n')
+		i++;
+	str[i] = '\0';
+
+	return str;
+}
+
 void createNewContact()
 {
+	system("cls");
 	struct Contacts Contact;
 	printf("Add your new contact!");
-	printf("\nName: ");
 	// czyszczenie buforu klawiatury
 	int c;
 	while ((c = getchar()) != '\n' && c != EOF) {}
 
-	char* name = malloc(TEMP_LENGTH);
-	fgets(name, TEMP_LENGTH, stdin);
-	Contact.name = name;
+	while (true)
+	{
+		printf("\nName: ");
+		char* name = malloc(TEMP_LENGTH);
+		fgets(name, TEMP_LENGTH, stdin);
+		if (name[0] != '\n' || name[0] == 0)
+		{
+			name[strlen(name - 1)] = '\0';
+			Contact.name = cutLastChar(name);
+			break;
+		}
+		else
+			printf("You have to input a Name!");
+	}
 
-	printf("Surname: ");
-	char* sName = malloc(TEMP_LENGTH);
-	fgets(sName, TEMP_LENGTH, stdin);
-	Contact.sName = sName;
+	while (true)
+	{
+		printf("Surname: ");
+		char* sName = malloc(TEMP_LENGTH);
+		fgets(sName, TEMP_LENGTH, stdin);
+		if (sName[0] != '\n' || sName[0] == 0)
+		{
+			Contact.sName = cutLastChar(sName);
+			break;
+		}
+		else
+			printf("You have to input a Surname!\n");
+	}
 
 	printf("Phone Number: ");
 	char* phoneNumber = malloc(TEMP_LENGTH);
 	fgets(phoneNumber, TEMP_LENGTH, stdin);
-	Contact.phoneNumber = phoneNumber;
+	Contact.phoneNumber = cutLastChar(phoneNumber);
 
 	printf("Address: ");
 	char* address = malloc(TEMP_LENGTH);
 	fgets(address, TEMP_LENGTH, stdin);
-	Contact.address = address;
+	Contact.address = cutLastChar(address);
 
 	printf("Email: ");
 	char* email = malloc(TEMP_LENGTH);
 	fgets(email, TEMP_LENGTH, stdin);
-	Contact.email = email;
+	Contact.email = cutLastChar(email);
 
 	addContact(Contact);
 }
 
 void addContact(struct Contacts Contact)
 {
-	system("cls");
 	char* query = malloc(TEMP_LENGTH);
-	sprintf(query, "INSERT INTO Contacts_%s VALUES(NULL, \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')", login, Contact.name, Contact.sName, Contact.phoneNumber, Contact.address, Contact.email);
-	bool xd = true;
+
+	char sure;
+	printf("Are you sure to add this contact? [y/N]: ");
+	while (true)
+	{
+		sure = _getch();
+		if (sure == 121 || sure == 110 || sure == 78)
+		{
+			putchar('\n');
+			switch (sure)
+			{
+			case 121:
+			{
+				sprintf(query, "INSERT INTO Contacts_%s VALUES(NULL, \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')", login, Contact.name, Contact.sName, Contact.phoneNumber, Contact.address, Contact.email);
+				if (mysql_query(conn, query))
+				{
+					fprintf(stderr, "%s\n", mysql_error(conn));
+					exit(1);
+				}
+				else
+				{
+					printf("Your contact was added successfully!\n");
+					char quit;
+					printf("Do you want to add a new contact? [y/N]: ");
+					while (true)
+					{
+						quit = _getch();
+						if (quit == 121 || quit == 110 || quit == 78)
+						{
+							putchar('\n');
+							switch (quit)
+							{
+							case 121:
+							{
+								createNewContact();
+							}
+							break;
+							case 110:
+							case 78:
+							{
+								mainMenu();
+							}
+							break;
+							}
+						}
+					}
+				}
+			}
+			break;
+			case 110:
+			case 78:
+			{
+				mainMenu();
+			}
+			break;
+			}
+		}
+	}
 }
 
 void mainMenu()
