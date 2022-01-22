@@ -252,6 +252,7 @@ void showAllContacts(char* temp)
 			isExists = false;
 		}
 	}
+	
 	mysql_free_result(response);
 	if (isExists)
 	{
@@ -291,7 +292,7 @@ void createNewContact()
 	// czyszczenie buforu klawiatury
 	int c;
 	while ((c = getchar()) != '\n' && c != EOF) {}
-
+	// https://stackoverflow.com/questions/56339883/insert-special-characters-with-libmysql - problem z wysyłaniem óęąćźż itp.
 	while (true)
 	{
 		printf("\nName: ");
@@ -402,9 +403,83 @@ void addContact(struct Contacts Contact)
 	}
 }
 
+char* deleteContact(int id)
+{
+	char query[150];
+	sprintf(query, "DELETE FROM Contacts_%s WHERE id = %d", login, id);
+	if (mysql_query(conn, query))
+	{
+		fprintf(stderr, "%s\n", mysql_error(conn));
+		exit(1);
+	}
+	return "Contact with %d id was succesfully deleted.", id;
+}
+
 void editContact()
 {
-	
+	system("cls");
+	printf("Do you want to edit or delete your contact? [e/D]: ");
+	char edOrDel;
+	int idToDel;
+	while (true)
+	{
+		edOrDel = _getch();
+		if (edOrDel == 68 || edOrDel == 100 || edOrDel == 69 || edOrDel == 101)
+		{
+			switch (edOrDel)
+			{
+			case 68:
+			case 100:
+			{
+				//delete
+				printf("\nWhich id do you want to delete?: ");
+				scanf("%d", &idToDel);
+				printf("\nAre you sure to delete this contact with id = %d? [y/N]", idToDel);
+				char yesNo;
+				while (true)
+				{
+					yesNo = _getch();
+					if (yesNo == 89 || yesNo == 121 || yesNo == 78 || yesNo == 110)
+					{
+						switch (yesNo)
+						{
+						case 89:
+						case 121:
+						{
+							char* result = deleteContact(idToDel);
+							printf(result);
+							printf("\nPress \'q\' to go to main menu... ");
+							char option;
+							while (true)
+							{
+								option = _getch();
+								if (option == 81 || option == 113)
+								{
+									mainMenu();
+									break;
+								}
+							}
+						}
+						break;
+						case 78:
+						case 110:
+						{
+							mainMenu();
+						}
+						}
+					}
+				}
+			}
+			break;
+			case 69:
+			case 101:
+			{
+				//edit
+			}
+			break;
+			}
+		}
+	}
 }
 
 void mainMenu()
@@ -440,7 +515,10 @@ void mainMenu()
 	}
 	break;
 	case '4':
+	{
 		editContact();
+	}
+	break;
 	case '5':
 	{
 		printf("\nBye! See you soon!");
