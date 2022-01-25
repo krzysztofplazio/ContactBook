@@ -12,7 +12,7 @@
 #define MAX_LENGH 255
 
 char login[LOG_LENGTH], pass[PASS_LENGTH], tempValue[TEMP_LENGTH];
-MYSQL* conn;
+MYSQL *conn, mysql;
 
 // Server
 char* server = "185.226.98.6";
@@ -35,6 +35,12 @@ struct Contacts
 	char* phoneNumber;
 	char* address;
 	char* email;
+};
+
+struct Ids
+{
+	int* ids;
+	int counter;
 };
 
 char name[100];
@@ -147,12 +153,12 @@ void searchContactsByName(char* name)
 	int rowCounter = 0;
 	sprintf(query, "SELECT Id, Name, SName, PhoneNumber, Address, Email FROM Contacts_%s WHERE Name = \"%s\";", login, name);
 
-	if (mysql_query(conn, query))
+	if (mysql_query(&mysql, query))
 	{
-		fprintf(stderr, "%s\n", mysql_error(conn));
+		fprintf(stderr, "%s\n", mysql_error(&mysql));
 		exit(1);
 	}
-	MYSQL_RES* response = mysql_use_result(conn);
+	MYSQL_RES* response = mysql_use_result(&mysql);
 	int numFields = mysql_num_fields(response);
 	printf("Here's your contacts with name %s:\n", name);
 	while ((rows = mysql_fetch_row(response)) != NULL)
@@ -193,13 +199,13 @@ void searchContactsById(int id)
 	char* query[150];
 	sprintf(query, "SELECT Id, Name, SName, PhoneNumber, Address, Email FROM Contacts_%s WHERE Id = %d", login, id);
 
-	if (mysql_query(conn, query))
+	if (mysql_query(&mysql, query))
 	{
-		fprintf(stderr, "%s\n", mysql_error(conn));
+		fprintf(stderr, "%s\n", mysql_error(&mysql));
 		exit(1);
 	}
 	printf("Here's your contact with %d ID:\n", id);
-	MYSQL_RES* response = mysql_use_result(conn);
+	MYSQL_RES* response = mysql_use_result(&mysql);
 	int num_fields = mysql_num_fields(response);
 	while ((rows = mysql_fetch_row(response)) != NULL)
 	{
@@ -230,13 +236,13 @@ void showAllContacts(char* temp)
 	int lastId = 0;
 	sprintf(query, "SELECT Id, Name, SName, PhoneNumber, Address, Email FROM Contacts_%s", login);
 	bool isExists = false;
-	if (mysql_query(conn, query))
+	if (mysql_query(&mysql, query))
 	{
-		fprintf(stderr, "%s\n", mysql_error(conn));
+		fprintf(stderr, "%s\n", mysql_error(&mysql));
 		exit(1);
 	}
 	printf("Here's yours all contacts:\n");
-	MYSQL_RES* response = mysql_use_result(conn);
+	MYSQL_RES* response = mysql_use_result(&mysql);
 	int num_fields = mysql_num_fields(response);
 	while ((rows = mysql_fetch_row(response)) != NULL)
 	{
@@ -244,6 +250,7 @@ void showAllContacts(char* temp)
 		{
 			lastId = atoi(rows[0]);
 			printf("%s. \nName: \t\t%s \nSurname: \t%s \nPhoneNumber: \t%s \nAddress: \t%s \nEmail: \t\t%s\n\n", rows[0], rows[1], rows[2], rows[3], rows[4], rows[5]);
+			
 			isExists = true;
 		}
 		else
@@ -357,9 +364,10 @@ void addContact(struct Contacts Contact)
 			case 121:
 			{
 				sprintf(query, "INSERT INTO Contacts_%s VALUES(NULL, \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')", login, Contact.name, Contact.sName, Contact.phoneNumber, Contact.address, Contact.email);
-				if (mysql_query(conn, query))
+				printf(query);
+				if (mysql_query(&mysql, query))
 				{
-					fprintf(stderr, "%s\n", mysql_error(conn));
+					fprintf(stderr, "%s\n", mysql_error(&mysql));
 					exit(1);
 				}
 				else
@@ -403,16 +411,62 @@ void addContact(struct Contacts Contact)
 	}
 }
 
+struct Ids getAllIds()
+{
+	struct Ids ids;
+	int* idArr;
+	int counter = 0;
+	MYSQL_ROW rows;
+	char query[150];
+	sprintf(query, "SELECT id FROM Contacts_%s", login);
+
+	if (mysql_query(&mysql, query))
+	{
+		fprintf(stderr, "%s\n", mysql_error(&mysql));
+		exit(1);
+	}
+	MYSQL_RES* response = mysql_use_result(&mysql);
+	int row_nums = mysql_num_rows(response);
+	idArr = malloc(row_nums);
+	while (rows = mysql_fetch_row(response) != NULL)
+	{
+		idArr[counter] = atoi(rows[0]);
+		counter++;
+	}
+	ids.ids = idArr;
+	ids.counter = counter;
+	mysql_free_result(response);
+	return ids;
+}
+
+bool checkIfIdExist(int id)
+{
+	int counter = 0;
+	struct Ids ids = getAllIds();
+	for (int i = 0; i < ids.counter; i++)
+	{
+		if (ids.ids[i] == id)
+		{
+			counter++;
+		}
+	}
+
+	if (counter == 1)
+		return true;
+	else
+		return false;
+}
+
 char* deleteContact(int id)
 {
 	char query[150];
 	sprintf(query, "DELETE FROM Contacts_%s WHERE id = %d", login, id);
-	if (mysql_query(conn, query))
+	if (mysql_query(&mysql, query))
 	{
-		fprintf(stderr, "%s\n", mysql_error(conn));
+		fprintf(stderr, "%s\n", mysql_error(&mysql));
 		exit(1);
 	}
-	return "Contact with %d id was succesfully deleted.", id;
+	return "\nContact with was succesfully deleted.";
 }
 
 void editContact()
@@ -446,8 +500,15 @@ void editContact()
 						case 89:
 						case 121:
 						{
-							char* result = deleteContact(idToDel);
-							printf(result);
+							if (checkIfIdExist(idToDel))
+							{
+								char* result = deleteContact(idToDel);
+								printf("%s", result);
+							}
+							else
+							{
+								printf("\nThere's no contact with %d id.", idToDel);
+							}
 							printf("\nPress \'q\' to go to main menu... ");
 							char option;
 							while (true)
@@ -535,11 +596,12 @@ bool goodLogin()
 {
 	bool isLogged = true;
 
-	conn = mysql_init(NULL);
-
-	if (!mysql_real_connect(conn, server, user, password, database, port, 0, NULL, 0)) 
+	mysql_init(&mysql);
+	if (!mysql_real_connect(&mysql, server, user, password, database, port, 0, NULL, 0))
+	{
 		isLogged = false;
-
+		printf(mysql_error(&mysql));
+	}
 	return isLogged;
 }
 
@@ -569,5 +631,5 @@ void logging()
 int main(void)
 {
 	logging();
-	mysql_close(conn);
+	mysql_close(&mysql);
 }
