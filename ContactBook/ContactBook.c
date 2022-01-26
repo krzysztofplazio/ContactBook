@@ -37,12 +37,6 @@ struct Contacts
 	char* email;
 };
 
-struct Ids
-{
-	int* ids;
-	int counter;
-};
-
 char name[100];
 
 void mainMenu();
@@ -50,6 +44,8 @@ void searchContactsById();
 void showAllContacts();
 void searchContactsByName();
 void addContact();
+bool checkIfIdExist();
+bool isNumber();
 
 void passHider()
 {
@@ -116,19 +112,23 @@ void isContactExist(int lastId, char* currFunc, void(*cur)(char*))
 	case 110:
 	case 78:
 	{
-		int conNum;
+		char conNum[TEMP_LENGTH];
 		while (true)
 		{
 			printf("Pick your contact number: ");
-			scanf("%d", &conNum);
-			if (conNum > lastId || lastId == 0)
+			scanf("%s", &conNum);
+			if (isNumber(conNum, strlen(conNum)))
 			{
-				printf("There's not contact with id %d\n\n", conNum);
-			}
-			else
-			{
-				searchContactsById(conNum);
-				break;
+				if (!checkIfIdExist(atoi(conNum)))
+					//if (conNum > lastId || lastId == 0)
+				{
+					printf("There's not contact with id %d\n\n", atoi(conNum));
+				}
+				else
+				{
+					searchContactsById(atoi(conNum));
+					break;
+				}
 			}
 		}
 	}
@@ -172,7 +172,7 @@ void searchContactsByName(char* name)
 	}
 	if (rowCounter == 0)
 	{
-		printf("There's no constacts with name %s :(", name);
+		printf("There's no constacts with name %s :(\n", name);
 	}
 	if (rowCounter > 1)
 	{
@@ -411,50 +411,66 @@ void addContact(struct Contacts Contact)
 	}
 }
 
-struct Ids getAllIds()
+bool isNumber(char input[], int len)
 {
-	struct Ids ids;
-	int* idArr;
-	int counter = 0;
-	MYSQL_ROW rows;
+	for (int i = 0; i < len; i++)
+	{
+		if (input[i] != '\0');
+		{
+			if (!isdigit(input[i]))
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+bool checkIfIdExist(int id)
+{
+	int counter = 0, temp = 0;
+	MYSQL_ROW row;
+	unsigned int num_fields;
+	unsigned int i;
 	char query[150];
-	sprintf(query, "SELECT id FROM Contacts_%s", login);
+
+	sprintf(query, "SELECT Id, Name FROM Contacts_%s WHERE id = %d", login, id);
 
 	if (mysql_query(&mysql, query))
 	{
 		fprintf(stderr, "%s\n", mysql_error(&mysql));
 		exit(1);
 	}
-	MYSQL_RES* response = mysql_use_result(&mysql);
-	int row_nums = mysql_num_rows(response);
-	idArr = malloc(row_nums);
-	while (rows = mysql_fetch_row(response) != NULL)
+	MYSQL_RES* result = mysql_use_result(&mysql);
+	num_fields = mysql_num_fields(result);
+	while ((row = mysql_fetch_row(result)))
 	{
-		idArr[counter] = atoi(rows[0]);
-		counter++;
-	}
-	ids.ids = idArr;
-	ids.counter = counter;
-	mysql_free_result(response);
-	return ids;
-}
-
-bool checkIfIdExist(int id)
-{
-	int counter = 0;
-	struct Ids ids = getAllIds();
-	for (int i = 0; i < ids.counter; i++)
-	{
-		if (ids.ids[i] == id)
+		if (num_fields > 0)
 		{
-			counter++;
+			printf("%s", row[0]);
+			temp = atoi(row[0]);
+			printf("%d", temp);
+			if(id == temp)
+				counter++;
+
+			mysql_free_result(result);
+		}
+		else
+		{
+			mysql_free_result(result);
+			return false;
 		}
 	}
 
 	if (counter == 1)
+	{
 		return true;
+	}
 	else
+	{
 		return false;
+	}
+		
 }
 
 char* deleteContact(int id)
@@ -466,7 +482,7 @@ char* deleteContact(int id)
 		fprintf(stderr, "%s\n", mysql_error(&mysql));
 		exit(1);
 	}
-	return "\nContact with was succesfully deleted.";
+	return "\nContact was succesfully deleted.";
 }
 
 void editContact()
@@ -474,7 +490,7 @@ void editContact()
 	system("cls");
 	printf("Do you want to edit or delete your contact? [e/D]: ");
 	char edOrDel;
-	int idToDel;
+	char idToDel[TEMP_LENGTH];
 	while (true)
 	{
 		edOrDel = _getch();
@@ -487,8 +503,8 @@ void editContact()
 			{
 				//delete
 				printf("\nWhich id do you want to delete?: ");
-				scanf("%d", &idToDel);
-				printf("\nAre you sure to delete this contact with id = %d? [y/N]", idToDel);
+				scanf("%s", &idToDel);
+				printf("\nAre you sure to delete this contact? [y/N]");
 				char yesNo;
 				while (true)
 				{
@@ -500,14 +516,21 @@ void editContact()
 						case 89:
 						case 121:
 						{
-							if (checkIfIdExist(idToDel))
+							if (isNumber(idToDel, strlen(idToDel)))
 							{
-								char* result = deleteContact(idToDel);
-								printf("%s", result);
+								if (checkIfIdExist(atoi(idToDel)))
+								{
+									char* result = deleteContact(idToDel);
+										printf("%s", result);
+								}
+								else
+								{
+									printf("\nThere's no contact with %d id.", idToDel);
+								}
 							}
 							else
 							{
-								printf("\nThere's no contact with %d id.", idToDel);
+								printf("\n%s is not an integer!", idToDel);
 							}
 							printf("\nPress \'q\' to go to main menu... ");
 							char option;
@@ -535,7 +558,69 @@ void editContact()
 			case 69:
 			case 101:
 			{
-				//edit
+				char idToEd[TEMP_LENGTH];
+				printf("\nPick your contact Id: ");
+				while(true)
+				{
+					scanf("%s", &idToEd);
+					if (isNumber(idToEd, strlen(idToEd)))
+					{
+						if (checkIfIdExist(atoi(idToEd)))
+						{
+							printf("\nWhich column do you want to change?\n");
+							printf("1. Name\n2. Surname\n3. Phone number\n4. Address\n5. Email\n6. Quit main menu\n\nPick your choise: ");
+							char pick;
+							while (true)
+							{
+								pick = _getch();
+								switch (pick)
+								{
+								case '1':
+								{}
+								break;
+								case '2':
+								{}
+								break;
+								case '3':
+								{}
+								break;
+								case '4':
+								{}
+								break;
+								case '5':
+								{}
+								break;
+								case '6':
+								{
+									mainMenu();
+								}
+								break;
+								default:
+									break;
+								}
+							}
+						}
+						else
+						{
+							printf("\nThere's no contact with %s id.", idToEd);
+						}
+					}
+					else
+					{
+						printf("\n%s is not an integer!", idToEd);
+					}
+					printf("\nPress \'q\' to go to main menu... ");
+					char option;
+					while (true)
+					{
+						option = _getch();
+						if (option == 81 || option == 113)
+						{
+							mainMenu();
+							break;
+						}
+					}
+				}
 			}
 			break;
 			}
