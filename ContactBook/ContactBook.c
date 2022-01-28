@@ -470,10 +470,10 @@ bool checkIfIdExist(int id)
 		
 }
 
-char* deleteContact(int id)
+char* deleteContact(char* id)
 {
 	char query[150];
-	sprintf(query, "DELETE FROM Contacts_%s WHERE id = %d", login, id);
+	sprintf(query, "DELETE FROM Contacts_%s WHERE id = %s", login, id);
 	if (mysql_query(&mysql, query))
 	{
 		fprintf(stderr, "%s\n", mysql_error(&mysql));
