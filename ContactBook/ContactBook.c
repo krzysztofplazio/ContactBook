@@ -298,8 +298,8 @@ void createNewContact()
 	printf("Add your new contact!");
 	// czyszczenie buforu klawiatury
 	int c;
-	while ((c = getchar()) != '\n' && c != EOF) {}
-	// https://stackoverflow.com/questions/56339883/insert-special-characters-with-libmysql - problem z wysyłaniem óęąćźż itp.
+	if ((c = getchar()) != '\n' && c != EOF)
+		while ((c = getchar()) != '\n' && c != EOF) {}
 	while (true)
 	{
 		printf("\nName: ");
@@ -364,7 +364,6 @@ void addContact(struct Contacts Contact)
 			case 121:
 			{
 				sprintf(query, "INSERT INTO Contacts_%s VALUES(NULL, \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')", login, Contact.name, Contact.sName, Contact.phoneNumber, Contact.address, Contact.email);
-				printf(query);
 				if (mysql_query(&mysql, query))
 				{
 					fprintf(stderr, "%s\n", mysql_error(&mysql));
@@ -447,9 +446,7 @@ bool checkIfIdExist(int id)
 	{
 		if (num_fields > 0)
 		{
-			printf("%s", row[0]);
 			temp = atoi(row[0]);
-			printf("%d", temp);
 			if(id == temp)
 				counter++;
 
@@ -485,6 +482,36 @@ char* deleteContact(int id)
 	return "\nContact was succesfully deleted.";
 }
 
+char* changeValue(char* id, char* columnName, char* sqlColumnName)
+{
+	int c;
+	while ((c = getchar()) != '\n' && c != EOF) {}
+	char* value = malloc(TEMP_LENGTH);
+	while (true)
+	{	
+		printf("\nSet your new value for %s: ", columnName);
+		fgets(value, TEMP_LENGTH, stdin);
+		if (value[0] != '\n' || value[0] == 0)
+		{
+			value[strlen(value - 1)] = '\0';
+			value = cutLastChar(value);
+			break;
+		}
+		else
+			printf("\nYou have to input a value!");
+	}
+
+	char query[150];
+	sprintf(query, "UPDATE Contacts_%s SET %s = \'%s\' WHERE id = %s", login, sqlColumnName, value, id);
+	if (mysql_query(&mysql, query))
+	{
+		fprintf(stderr, "%s\n", mysql_error(&mysql));
+		exit(1);
+	}
+
+	return "\nYou have edited your contact correctly.";
+}
+
 void editContact()
 {
 	system("cls");
@@ -502,6 +529,9 @@ void editContact()
 			case 100:
 			{
 				//delete
+				int c;
+				if ((c = getchar()) != '\n' && c != EOF)
+					while ((c = getchar()) != '\n' && c != EOF) {}
 				printf("\nWhich id do you want to delete?: ");
 				scanf("%s", &idToDel);
 				printf("\nAre you sure to delete this contact? [y/N]");
@@ -576,19 +606,29 @@ void editContact()
 								switch (pick)
 								{
 								case '1':
-								{}
+								{
+									printf(changeValue(idToEd, "Name", "Name"));
+								}
 								break;
 								case '2':
-								{}
+								{
+									printf(changeValue(idToEd, "Surname", "sName"));
+								}
 								break;
 								case '3':
-								{}
+								{
+									printf(changeValue(idToEd, "Phone number", "PhoneNumber"));
+								}
 								break;
 								case '4':
-								{}
+								{
+									printf(changeValue(idToEd, "Address", "Address"));
+								}
 								break;
 								case '5':
-								{}
+								{
+									printf(changeValue(idToEd, "Email", "Email"));
+								}
 								break;
 								case '6':
 								{
@@ -597,6 +637,17 @@ void editContact()
 								break;
 								default:
 									break;
+								}
+								printf("\nPress \'q\' to go to main menu... ");
+								char option;
+								while (true)
+								{
+									option = _getch();
+									if (option == 81 || option == 113)
+									{
+										mainMenu();
+										break;
+									}
 								}
 							}
 						}
@@ -680,7 +731,8 @@ void mainMenu()
 bool goodLogin()
 {
 	bool isLogged = true;
-
+	mysql_options(&mysql, MYSQL_INIT_COMMAND, "SET NAMES 'utf8mb4';");
+	mysql_options(&mysql, MYSQL_INIT_COMMAND, "SET CHARACTER SET utf8mb4;");
 	mysql_init(&mysql);
 	if (!mysql_real_connect(&mysql, server, user, password, database, port, 0, NULL, 0))
 	{
