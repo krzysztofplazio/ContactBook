@@ -737,7 +737,7 @@ bool goodLogin()
 	if (!mysql_real_connect(&mysql, server, user, password, database, port, 0, NULL, 0))
 	{
 		isLogged = false;
-		printf(mysql_error(&mysql));
+		//printf(mysql_error(&mysql));
 	}
 	return isLogged;
 }
